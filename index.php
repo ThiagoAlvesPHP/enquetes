@@ -7,12 +7,20 @@
   //PEGANDO O IP DO USUARIO
   $ip = $_SERVER["REMOTE_ADDR"];
 
+  //CRIANDO PAGINAÇÃO
+  $limite = 10;
+  $pg = 1;
+  if (isset($_GET['p']) && !empty($_GET['p'])) {
+    $pg = addslashes($_GET['p']);
+  }
+  $p = ($pg - 1) * 10;
+
   //PEGANDO ENQUETE DO USUARIO BASEADO NO IP DELE
   $enquete = $sql->getEnquete($ip);
   //PEGANDO AS OPÇÕES BASEADO NA ENQUETE REGISTRADA
   $opcoes = $sql->getOpcoes($enquete['id']);
   //PEGANDO TODAS AS ENQUETES
-  $getEnquetes = $sql->getEnquetes();
+  $getEnquetes = $sql->getEnquetes($p, $limite);
 
   //REGISTRANDO ENQUETE
   if (!empty($_POST['enquete']) && !empty($_POST['validade'])) {
@@ -66,7 +74,7 @@
   <title></title>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1"> 
-  <link rel="icon" href="assets/img/favicon.png" type="image/x-icon"/>
+<!--   <link rel="icon" href="assets/img/favicon.png" type="image/x-icon"/> -->
 
   <link rel="stylesheet" type="text/css" href="css/bootstrap.css">
   <link rel="stylesheet" href="js/datetime/jquery.datetimepicker.css">
@@ -77,6 +85,23 @@
     .opcoes{
       text-align: center;
       font-size: 20px;
+    }
+    .time{
+      float: left;
+      margin-left: 10px;
+      width: 20%;
+      height: 40px;
+      background-color: orange;
+      color: #000;
+      font-size: 12px;
+      text-align: center;
+      border-radius: 20px;
+    }
+    .time span{
+      font-size: 10px;
+    }
+    .topo{
+      width: 50%;
     }
   </style>
   <script type="text/javascript">
@@ -149,40 +174,94 @@
       <!-- SE EXISTIR ENQUETES PREENCHIDAS -->
       <?php if(!empty($getEnquetes)): ?>
         <?php foreach($getEnquetes as $op): ?>
-          <?php $OpcoesEnq = $sql->getOpcoes($op['id']); ?>
-          <?php if(!empty($OpcoesEnq)): ?>
-            <?php echo htmlspecialchars($op['enquete']); 
+          <?php 
+          $OpcoesEnq = $sql->getOpcoes($op['id']); 
 
-            $contador = $sql->getContador($op['validade']);
+          ?>
+          <?php if(!empty($OpcoesEnq)): ?>
+            <div class="row">
+              <div class="col-sm-12">
+                <?php 
+                echo htmlspecialchars($op['enquete']); 
+                $contador = $sql->getContador($op['validade']);
+                echo $contador;
+                ?>
+                
+              </div>
+            </div>      
+            <?php foreach ($OpcoesEnq as $o): 
+              if ($op['validade'] > date('Y-m-d H:i:s')):
             ?>
-            <script type="text/javascript">
-                $(document).ready(function(){
-                    // Requisicao AJAX
-                    var requisicao = function(){
-                        $.ajax({
-                            url: <?=$contador; ?>
-                        }).done(function(resultado){
-                          console.log(resultado);
-                            // Exibe o resultado no elemento com ID contador
-                            $("#contador").html(resultado);
-                        });
-                    };
-                    
-                    // Executa a requisicao com intervalo de 100ms
-                    setInterval(requisicao, 100);
-                });             
-            </script>
-            <br>        
-            <?php foreach ($OpcoesEnq as $o): ?>
               <div class="col-sm-6">
                 <button class="btn btn-block btn-info"><?=$o['opcao']; ?></button>
               </div>
-            <?php endforeach; ?>
+            <?php
+            endif;
+          endforeach; ?>
             <hr>
           <?php endif; ?>
         <?php endforeach; ?>
       <?php endif; ?>
       </div>
+
+
+      <?php
+      $paginas = $sql->countEnquetes();
+      $paginas = $paginas['count'] / 10;
+      ?>
+       <!-- PAGINAÇÃO -->
+        <nav aria-label="Navegação de página exemplo">
+          <ul class="pagination">
+            <?php
+                if ($pg == 1) {
+                    echo '<li class="page-item disabled">
+                      <span class="page-link">Anterior</span>
+                    </li>';
+                    for ($i=0; $i < $paginas; $i++) { 
+                        if ($i < $pg+2) {
+                            echo '
+                            <li class="page-item">
+                                <a class="page-link" href="?p='.($i+1).'">'.($i+1  ).'</a>
+                            </li>';
+                        }
+                    }
+                    echo '
+                            <li class="page-item">
+                                <a class="page-link">...</a>
+                            </li>';
+                    echo '
+                            <li class="page-item">
+                                <a class="page-link" href="?p='.($i+1).'">'.($i+1  ).'</a>
+                            </li>';
+
+                    echo '<li class="page-item"><a class="page-link" href="?p='.($pg+1).'">Próximo</a></li>';
+                } else {
+                    echo '<li class="page-item"><a class="page-link" href="?p='.($pg-1).'">Anterior</a></li>';
+                    for ($i=0; $i < $paginas; $i++) {
+
+                        if ($i < $_GET['p']+2 && $i > $_GET['p']-2) {
+                            echo '
+                            <li class="page-item">
+                                <a class="page-link" href="?p='.($i+1).'">'.($i+1  ).'</a>
+                            </li>';
+                        }
+                    }
+                    echo '
+                            <li class="page-item">
+                                <a class="page-link">...</a>
+                            </li>';
+                    echo '
+                            <li class="page-item">
+                                <a class="page-link" href="?p='.($i+1).'">'.($i+1  ).'</a>
+                            </li>';
+
+                    echo '<li class="page-item"><a class="page-link" href="?p='.($pg+1).'">Próximo</a></li>';
+                } 
+            ?>
+          </ul>
+        </nav>  
+
+
     </div>
   </div>
 </div>
